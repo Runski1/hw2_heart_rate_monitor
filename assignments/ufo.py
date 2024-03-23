@@ -3,24 +3,23 @@
 import time
 from machine import UART, Pin, I2C, Timer, ADC
 from ssd1306 import SSD1306_I2C
-import framebuf
 
+# i2c bus and display init
 i2c = I2C(1, scl=Pin(15), sda=Pin(14), freq=400000)
 oled_width = 128
 oled_height = 64
 oled = SSD1306_I2C(oled_width, oled_height, i2c)
 
-
+# Button class with rebound filter
 class Button:
     def __init__(self, id):
         self.button = Pin(id, Pin.IN, Pin.PULL_UP)
 
     def pressed(self):
         if self.button.value() == 0:
-            time.sleep(0.1)
+            time.sleep(0.05)
             if self.button.value() == 0:
                 return True
-
         return False
 
 
@@ -35,6 +34,6 @@ while True:
     oled.text("<=>", x, y)
     oled.show()
     if sw0.pressed() and x != 104:
-        x += 24
+        x += 3
     if sw2.pressed() and x != 8:
-        x -= 24
+        x -= 3
