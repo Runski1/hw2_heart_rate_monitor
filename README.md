@@ -8,9 +8,10 @@ Matias Ruonala: matias.ruonala@metropolia.fi
 ## Useful stuff to know and what we gotta decide first
 1. Make a clean README by the end of this course
 2. Decide how we're going to manage main branch in remote repository:
-At the job interview on 20. March I had this discussion with one of the
-interviewers. I told that I had to spend a lot of time to fix broken master
-branch when we did our first project. He said that even the smallest teams
-should have one person to review the code before merging to main, and every-
-thing should be published as a merge request. I'm all up for that, but it also
-sounds like a bit more work, **IF everything goes smoothly when everyone just pushes straight into main.**
+    - Matias has decided that everyone is to be making merge requests.
+    I suggest you make a clean clone of main branch here and use it as
+    a template every time you wish to work on something. More your own
+    branch diverses from main branch here, the more troublesome the merging
+    is going to be.
+
+We should try to figure out how this gitlab works together at school at some point.
