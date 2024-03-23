@@ -26,14 +26,29 @@ class Button:
 sw0 = Button(7)
 sw2 = Button(9)
 
-x = 56
-y = 56
+# Vector UFO
+sides = [
+            [-10, 0, -6, 2],
+            [-6, 2, 6, 2],
+            [6, 2, 10, 0],
+            [10, 0, 6, -2],
+            [6, -2, -6, -2],
+            [-6, -2, -10, 0],
+            [-4, 2, -2, 4],
+            [-2, 4, 2, 4],
+            [2, 4, 4, 2]
+            ]
+
+x = 64 # This should be 52 for <=> and 64 for vector ufo
+y = 60 # This should be 56 for <=> and 60 for vector ufo
 
 while True:
     oled.fill(0)
-    oled.text("<=>", x, y)
+    for side in sides: # Comment this out for <=> ufo
+        oled.line(side[0] + x, (-1)*side[1] + y, side[2] + x, (-1)*side[3] + y, 1) # Comment this out for <=> ufo
+#    oled.text("<=>", x, y)
     oled.show()
-    if sw0.pressed() and x != 104:
-        x += 3
-    if sw2.pressed() and x != 8:
-        x -= 3
+    if sw0.pressed() and x < 114: # This should be 104 for <=> and 114 for vector ufo
+        x += 4
+    if sw2.pressed() and x > 14: # This should be 0 for <=> and 14 for vector ufo
+        x -= 4
