@@ -2,7 +2,7 @@
 This readme is for all group assignments and the final project on Hardware 2
 course in Metropolia UAS.
 ## Members/authorized to edit
-Nichakon Itthikun: nitchakon.itthikun@metropolia.fi
+Nichakon Itthikun: nichakon.itthikun@metropolia.fi
 Andrei Vlassenko: andrei.vlassenko@metropolia.fi
 Matias Ruonala: matias.ruonala@metropolia.fi
 ## Useful stuff to know and what we gotta decide first
