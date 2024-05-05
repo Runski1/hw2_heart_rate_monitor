@@ -7,7 +7,7 @@ from fifo import Fifo
 from data_processor import record_heart_rate
 from hrv_analysis import basic_hrv_analysis
 from cloudconnection import connect_to_kubios
-from history import History
+from history import save_to_history, history_mode
 
 micropython.alloc_emergency_exception_buf(200)
 
@@ -698,16 +698,17 @@ while True:
                 print("Use HRV mode first")
             else:
                 kubios_results = connect_to_kubios(rri_list)
-                his = History(kubios_results, _)
-                his.save_results()
-                del his
+                print("saving results to history")
+                save_to_history(kubios_results)
+                print("record saved to history")
+
         elif enc_value == 0b0010:
             while encoder.knob_fifo.has_data():
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("History selected")
+            history_mode()
             # History
             # Call for history drawing things here. It handles it's own display
-            pass
 
     oled.display.show()

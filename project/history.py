@@ -50,7 +50,7 @@ results = {
 
 
 class History:
-    def __init__(self, results, oled):
+    def __init__(self, oled):
         self.file = "history.txt"
         self.results = results
         self.list = []
@@ -69,28 +69,30 @@ class History:
             self.menu_lowest -= 1
 
     def selection_down(self):
-        if self.selection_pos < 54:
+        if self.selection_pos < 54 and self.selection_pos / 9 + 1 < len(self.list):
             self.selection_pos += char_height + 1
         elif self.menu_highest <= len(self.list):
             self.menu_highest += 1
             self.menu_lowest += 1
 
-    def save_results(self):
-        with open(self.file, "a") as history:
-            json.dump(self.results, history)
-            history.write("\n")
-
     def load_history(self):
         with open(self.file, "r") as history:
-            for line in history:
-                record = json.loads(line.strip())
-                self.list.append(record)
+            lines = history.readlines()
+            if len(lines) == 0:
+                print("no recorded history")
+                return False
+            else:
+                with open(self.file, "r") as history:
+                    for line in history:
+                        record = json.loads(line.strip())
+                        self.list.append(record)
+                    return True
 
     def draw_menu(self):
         y = 0
         char_height = 8
         self.oled.fill(0)
-        for i in range(self.menu_lowest, self.menu_highest):
+        for i in range(self.menu_lowest, min(self.menu_highest, len(self.list) + 1)):
             self.oled.text(self.list[len(self.list) - i]["timestamp"], 2, 2 + y, 1)
             y += char_height + 1
         self.oled.blit(self.selection, 0, self.selection_pos, 0)
@@ -100,35 +102,96 @@ class History:
         self.oled.rect()
 
     def display_history(self):
-        # Call for Nichakon's display functions here
-        pass
+        y = 0
+        oled.fill(0)
+        record_json = self.list[
+            (int(len(self.list) - (self.selection_pos / 9)) - self.menu_lowest)
+        ]
+        for item, value in record_json.items():
+            if item != "timestamp":
+                oled.text(item + ":", 0, y, 1)
+                oled.text(str(value), 104, y, 1)
+                y += 8
+        oled.text("Press to exit >", 8, 56, 1)
+        oled.show()
+
+    def print_selected_item(
+        self,
+    ):  # Prints the timestamp that is currently selected to console
+        print(
+            self.list[
+                (int(len(self.list) - (self.selection_pos / 9)) - self.menu_lowest)
+            ]
+        )
+
+
+def save_to_history(results):
+    with open("history.txt", "a") as history:
+        json.dump(results, history)
+        history.write("\n")
+
+
+def history_mode():
+    rot = Encoder()
+    his = History(oled)
+    history_exists = his.load_history()  # we can catch true/false here if needed
+    if history_exists:
+        his.print_selected_item()
+        his.draw_menu()
+        while True:
+            while rot.fifo.has_data():
+                val = rot.fifo.get()
+                if val == 1:
+                    his.selection_down()
+                    his.print_selected_item()
+                else:
+                    his.selection_up()
+                    his.print_selected_item()
+            his.draw_menu()
+            # Press knob to show history, press again to go back to browsing
+            # There must be prettier way to accomplish this but cba for now
+            if rot.pressed.has_data():
+                # This gets very ugly
+                while rot.pressed.has_data():  # empty knob press fifo...
+                    rot.pressed.get()
+                while rot.pressed.empty():  # ... to keep on displaying history
+                    his.display_history()
+                    while rot.fifo.has_data():  # ignore knob turns meanwhile
+                        rot.fifo.get()  # and make sure fifo doesnt fill up
+                while (
+                    rot.pressed.has_data()
+                ):  # go back to browsing history entries with knob press
+                    rot.pressed.get()  # empty fifo
 
 
 if __name__ == "__main__":
     rot = Encoder()
-    his = History(results, oled)
-    his.load_history()
-    print(
-        his.list[(int(len(his.list) - (his.selection_pos / 9)) - his.menu_lowest)][
-            "timestamp"
-        ]
-    )
-    his.draw_menu()
-    while True:
-        while rot.fifo.has_data():
-            val = rot.fifo.get()
-            if val == 1:
-                his.selection_down()
-                print(
-                    his.list[
-                        (int(len(his.list) - (his.selection_pos / 9)) - his.menu_lowest)
-                    ]["timestamp"]
-                )
-            else:
-                his.selection_up()
-                print(
-                    his.list[
-                        (int(len(his.list) - (his.selection_pos / 9)) - his.menu_lowest)
-                    ]["timestamp"]
-                )
+    his = History(oled)
+    history_exists = his.load_history()  # we can catch true/false here if needed
+    if history_exists:
+        his.print_selected_item()
         his.draw_menu()
+        while True:
+            while rot.fifo.has_data():
+                val = rot.fifo.get()
+                if val == 1:
+                    his.selection_down()
+                    his.print_selected_item()
+                else:
+                    his.selection_up()
+                    his.print_selected_item()
+            his.draw_menu()
+            # Press knob to show history, press again to go back to browsing
+            # There must be prettier way to accomplish this but cba for now
+            if rot.pressed.has_data():
+                # This gets very ugly
+                while rot.pressed.has_data():  # empty knob press fifo...
+                    rot.pressed.get()
+                while rot.pressed.empty():  # ... to keep on displaying history
+                    his.display_history()
+                    while rot.fifo.has_data():  # ignore knob turns meanwhile
+                        rot.fifo.get()  # and make sure fifo doesnt fill up
+                while (
+                    rot.pressed.has_data()
+                ):  # go back to browsing history entries with knob press
+                    rot.pressed.get()  # empty fifo

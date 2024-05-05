@@ -59,6 +59,7 @@ class Kubios:
         response = response.json()
 
         results = {
+            "timestamp": response["analysis"]["create_timestamp"],
             "mean_hr": response["analysis"]["mean_hr_bpm"],
             "mean_ppi": response["analysis"]["mean_rr_ms"],
             "rmssd": response["analysis"]["rmssd_ms"],
