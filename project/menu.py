@@ -8,6 +8,7 @@ from data_processor import record_heart_rate
 from hrv_analysis import basic_hrv_analysis
 from cloudconnection import connect_to_kubios
 from history import save_to_history, history_mode
+from measureHR import display_bpm
 
 micropython.alloc_emergency_exception_buf(200)
 
@@ -597,6 +598,22 @@ class Screen:
     def history_dis(self, history_data):
         self.display_data(history_data)
 
+class MenuButton:
+    def __init__(self, pin):
+        self.button = Pin(pin, Pin.IN, Pin.PULL_UP)
+        self.button.irq(handler=self.but_handler, trigger=Pin.IRQ_FALLING, hard=True)
+        self.debounce = 500
+        self.fifo = Fifo(10, typecode="i")
+        self.last_pressed = 0
+        self.button_press = 0
+
+    def but_handler(self, pin):
+        self.button_press = time.ticks_ms()
+        if self.button_press - self.last_pressed > self.debounce:
+            self.fifo.put(1)
+            self.last_pressed = self.button_press
+
+
 
 class Encoder:
     def __init__(self, rot_a, rot_b):
@@ -610,7 +627,7 @@ class Encoder:
         self.debounce = 500
         self.pressed = False
 
-        self.fifo = Fifo(30, typecode="i")
+        self.fifo = Fifo(100, typecode="i")
         self.a.irq(handler=self.rot_handler, trigger=Pin.IRQ_RISING, hard=True)
         self.but.irq(handler=self.but_handler, trigger=Pin.IRQ_FALLING, hard=True)
 
@@ -628,10 +645,11 @@ class Encoder:
 
 
 oled = Screen()
+menubutton = MenuButton(9)
 encoder = Encoder(10, 11)
 enc_value = 0b0001  # b0 for Q1
 rotval = 0
-rri_list = []  # Init rri list here just in case kubios is called before hrv analysis
+rri_list = False  # Init rri list here just in case kubios is called before hrv analysis
 # so that this works as an error catch
 
 while True:
@@ -668,9 +686,7 @@ while True:
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("BPM selected")
-            # BPM and heart curve
-            # init Andrei's code
-            pass
+            display_bpm(encoder)
         elif enc_value == 0b1000:
             while (
                 encoder.knob_fifo.has_data()
@@ -678,11 +694,19 @@ while True:
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("HRV selected")
-            rri_list = record_heart_rate()
-            print("Calculating basic HRV analysis")
-            results_dict = basic_hrv_analysis(rri_list)
-            print(results_dict)
-            # Call for the display function here with results-dictionary
+            rri_list = record_heart_rate(
+                encoder
+            )  # Passing the encoder to function works nice and dandy
+            if (
+                not rri_list
+            ):  # this should be True if recording is interrupted by knob press
+                print("recording interrupted")
+                pass
+            else:
+                print("Calculating basic HRV analysis")
+                results_dict = basic_hrv_analysis(rri_list)
+                print(results_dict)
+                # Call for the display function here with results-dictionary
             pass
         elif enc_value == 0b0100:
             while encoder.knob_fifo.has_data():
@@ -694,21 +718,25 @@ while True:
             # Returns analysis results as json, I think the drawing should be called here
             # and not directly from the Kubios code, but idk. its WIP
             print("Kubios selected")
-            if len(rri_list) == 0:
+            if not rri_list:
                 print("Use HRV mode first")
             else:
                 kubios_results = connect_to_kubios(rri_list)
-                print("saving results to history")
-                save_to_history(kubios_results)
-                print("record saved to history")
+                if kubios_results:
+                    print("saving results to history")
+                    save_to_history(kubios_results)
+                    print("record saved to history")
 
         elif enc_value == 0b0010:
             while encoder.knob_fifo.has_data():
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("History selected")
-            history_mode()
+            history_mode(encoder, menubutton)
+            print("heyeh")
+            pass
             # History
             # Call for history drawing things here. It handles it's own display
-
+    while menubutton.fifo.has_data():
+        menubutton.fifo.get()
     oled.display.show()

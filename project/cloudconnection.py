@@ -59,13 +59,15 @@ class Kubios:
         response = response.json()
 
         results = {
-            "timestamp": response["analysis"]["create_timestamp"],
-            "mean_hr": response["analysis"]["mean_hr_bpm"],
-            "mean_ppi": response["analysis"]["mean_rr_ms"],
-            "rmssd": response["analysis"]["rmssd_ms"],
-            "sdnn": response["analysis"]["sdnn_ms"],
-            "sns": response["analysis"]["sns_index"],
-            "pns": response["analysis"]["pns_index"],
+            "timestamp": response["analysis"]["create_timestamp"][
+                :16
+            ],  # OH NO IM SLICING
+            "mean_hr": round(response["analysis"]["mean_hr_bpm"], 1),
+            "mean_ppi": round(response["analysis"]["mean_rr_ms"]),
+            "rmssd": round(response["analysis"]["rmssd_ms"], 1),
+            "sdnn": round(response["analysis"]["sdnn_ms"], 1),
+            "sns": round(response["analysis"]["sns_index"], 2),
+            "pns": round(response["analysis"]["pns_index"], 2),
         }
 
         return results

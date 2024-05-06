@@ -24,7 +24,7 @@ class Encoder:
         self.but = Pin(12, mode=Pin.IN, pull=Pin.PULL_UP)
         self.but.irq(handler=self.but_handler, trigger=Pin.IRQ_FALLING, hard=True)
         self.button_press = time.ticks_ms()
-        self.pressed = Fifo(30, typecode="i")
+        self.knob_fifo = Fifo(30, typecode="i")
 
     def rot_handler(self, pin):
         if self.b():
@@ -35,7 +35,7 @@ class Encoder:
     def but_handler(self, pin):
         if time.ticks_diff(time.ticks_ms(), self.button_press) > 500:
             self.button_press = time.ticks_ms()
-            self.pressed.put(1)
+            self.knob_fifo.put(1)
 
 
 results = {
@@ -110,7 +110,7 @@ class History:
         for item, value in record_json.items():
             if item != "timestamp":
                 oled.text(item + ":", 0, y, 1)
-                oled.text(str(value), 104, y, 1)
+                oled.text(str(value), oled_width - len(str(value)) * 8, y, 1)
                 y += 8
         oled.text("Press to exit >", 8, 56, 1)
         oled.show()
@@ -131,8 +131,8 @@ def save_to_history(results):
         history.write("\n")
 
 
-def history_mode():
-    rot = Encoder()
+def history_mode(encoder, menu):
+    rot = encoder
     his = History(oled)
     history_exists = his.load_history()  # we can catch true/false here if needed
     if history_exists:
@@ -148,20 +148,24 @@ def history_mode():
                     his.selection_up()
                     his.print_selected_item()
             his.draw_menu()
+            if menu.fifo.has_data():
+                while menu.fifo.has_data():
+                    menu.fifo.get()
+                return
             # Press knob to show history, press again to go back to browsing
             # There must be prettier way to accomplish this but cba for now
-            if rot.pressed.has_data():
+            if rot.knob_fifo.has_data():
                 # This gets very ugly
-                while rot.pressed.has_data():  # empty knob press fifo...
-                    rot.pressed.get()
-                while rot.pressed.empty():  # ... to keep on displaying history
+                while rot.knob_fifo.has_data():  # empty knob press fifo...
+                    rot.knob_fifo.get()
+                while rot.knob_fifo.empty():  # ... to keep on displaying history
                     his.display_history()
                     while rot.fifo.has_data():  # ignore knob turns meanwhile
                         rot.fifo.get()  # and make sure fifo doesnt fill up
                 while (
-                    rot.pressed.has_data()
+                    rot.knob_fifo.has_data()
                 ):  # go back to browsing history entries with knob press
-                    rot.pressed.get()  # empty fifo
+                    rot.knob_fifo.get()  # empty fifo
 
 
 if __name__ == "__main__":
@@ -183,15 +187,15 @@ if __name__ == "__main__":
             his.draw_menu()
             # Press knob to show history, press again to go back to browsing
             # There must be prettier way to accomplish this but cba for now
-            if rot.pressed.has_data():
+            if rot.knob_fifo.has_data():
                 # This gets very ugly
-                while rot.pressed.has_data():  # empty knob press fifo...
-                    rot.pressed.get()
-                while rot.pressed.empty():  # ... to keep on displaying history
+                while rot.knob_fifo.has_data():  # empty knob press fifo...
+                    rot.knob_fifo.get()
+                while rot.knob_fifo.empty():  # ... to keep on displaying history
                     his.display_history()
                     while rot.fifo.has_data():  # ignore knob turns meanwhile
                         rot.fifo.get()  # and make sure fifo doesnt fill up
                 while (
-                    rot.pressed.has_data()
+                    rot.knob_fifo.has_data()
                 ):  # go back to browsing history entries with knob press
-                    rot.pressed.get()  # empty fifo
+                    rot.knob_fifo.get()  # empty fifo

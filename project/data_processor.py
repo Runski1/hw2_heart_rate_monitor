@@ -120,11 +120,17 @@ class DataProcessor:
                 return False
 
 
-def record_heart_rate():
+def record_heart_rate(encoder):
     heart_rate = DataProcessor(100, 4)
     rri_arr_len = 0
     print("Measuring heart rate...")
     while len(heart_rate.rri_arr) < 50:
+        while encoder.fifo.has_data():
+            encoder.fifo.get()
+        while encoder.knob_fifo.has_data():
+            encoder.knob_fifo.get()
+            heart_rate.tmr.deinit()
+            return False
         heart_rate.get_valid_rris()
         if len(heart_rate.rri_arr) > rri_arr_len:
             for led in leds:
