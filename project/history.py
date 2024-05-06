@@ -155,11 +155,13 @@ def history_mode(encoder, menu):
             # Press knob to show history, press again to go back to browsing
             # There must be prettier way to accomplish this but cba for now
             if rot.knob_fifo.has_data():
-                # This gets very ugly
-                while rot.knob_fifo.has_data():  # empty knob press fifo...
-                    rot.knob_fifo.get()
+                rot.empty_fifos()
                 while rot.knob_fifo.empty():  # ... to keep on displaying history
                     his.display_history()
+                    if menu.fifo.has_data():
+                        while menu.fifo.has_data():
+                            menu.fifo.get()
+                        return
                     while rot.fifo.has_data():  # ignore knob turns meanwhile
                         rot.fifo.get()  # and make sure fifo doesnt fill up
                 while (

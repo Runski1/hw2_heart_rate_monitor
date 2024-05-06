@@ -643,6 +643,12 @@ class Encoder:
             self.knob_fifo.put(1)
             self.last_pressed = button_press
 
+    def empty_fifos(self):
+        while self.fifo.has_data():
+            self.fifo.get()
+        while self.knob_fifo.has_data():
+            self.knob_fifo.get()
+
 
 oled = Screen()
 menubutton = MenuButton(9)
@@ -686,7 +692,7 @@ while True:
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("BPM selected")
-            display_bpm(encoder, oled.display)
+            display_bpm(encoder)
         elif enc_value == 0b1000:
             while (
                 encoder.knob_fifo.has_data()
