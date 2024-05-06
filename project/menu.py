@@ -598,6 +598,7 @@ class Screen:
     def history_dis(self, history_data):
         self.display_data(history_data)
 
+
 class MenuButton:
     def __init__(self, pin):
         self.button = Pin(pin, Pin.IN, Pin.PULL_UP)
@@ -612,7 +613,6 @@ class MenuButton:
         if self.button_press - self.last_pressed > self.debounce:
             self.fifo.put(1)
             self.last_pressed = self.button_press
-
 
 
 class Encoder:
@@ -686,7 +686,7 @@ while True:
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("BPM selected")
-            display_bpm(encoder)
+            display_bpm(encoder, oled.display)
         elif enc_value == 0b1000:
             while (
                 encoder.knob_fifo.has_data()
