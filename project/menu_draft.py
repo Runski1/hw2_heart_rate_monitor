@@ -78,14 +78,15 @@ class Screen:
         self.display.show()
         encoder.empty_fifos()
         while encoder.knob_fifo.empty():
-            encoder.fifo.get()
+            while encoder.fifo.has_data():
+                encoder.fifo.get()
             self.display.show()  # Sorry for hacky way to keep showing the results
 
     def show_progress(self, percentage):
         self.display.fill(0)
-        message = "Measuring... "
+        message1 = "Measuring... "
         # Displaying and aligning text to center
-        self.display.text(message, (self.width - ((len(message) * self.letter_size))) // 2, self.height - (self.gap + self.letter_size), 1)
+        self.centered(message1)
         self.display.text(str(percentage) + "%", (self.width - ((len(str(percentage)) * self.letter_size))) // 2, self.height - self.letter_size, 1)
         self.display.show()
 
@@ -98,12 +99,26 @@ class Screen:
             "SDNN:": round(sdnn, 2),
         }
         self.display_data(results)
+
+    def centered(self, message):
+        x_pos = (self.width - ((len(message) * self.letter_size))) // 2
+        y_pos = (self.height - self.letter_size) // 2
+        self.display.text(message, x_pos, y_pos, 1)
+
+    def hrv_first(self):
+        encoder.empty_fifos()
+        message111 = 'USE HRV FIRST'
+        self.display.fill(0)
+        self.centered(message111)
+        self.display.text("Press to exit >", 0, self.height - self.letter_size, 1)
+        while encoder.knob_fifo.empty():
+            self.display.show()
         
     def kubios_dis(self, results, connecting=False):
         if connecting: # Displaying and aligning text to center
             text1 = 'Connecting...'
             self.display.fill(0)
-            self.display.text(text1, (self.width - ((len(text1) * self.letter_size))) // 2, (self.height - self.letter_size) // 2, 1)
+            self.centered(text1)
             self.display.show()  # Connecting message
         else:
             self.display.fill(0)
@@ -200,7 +215,7 @@ while True:
     elif enc_value == 0b0010:
         oled.history_icon()
     
-    if encoder.knob_fifo.has_data():
+    if encoder.knob_fifo.has_data(): # BPM VIEW ################################
         encoder.pressed = True
         if enc_value == 0b0001:
             while encoder.knob_fifo.has_data():
@@ -209,7 +224,7 @@ while True:
             print("BPM selected")
             display_bpm(encoder, oled)
         
-        elif enc_value == 0b1000:
+        elif enc_value == 0b1000:  # HRV ANALYSIS #############################
             while (
                 encoder.knob_fifo.has_data()
             ):  # Emptying the fifo if multiple presses are recognized
@@ -233,24 +248,27 @@ while True:
                 encoder.empty_fifos()
                 pass
 
-        elif enc_value == 0b0100:
+        elif enc_value == 0b0100: # KUBIOS ###################################
             while encoder.knob_fifo.has_data():
                 encoder.knob_fifo.get()
             encoder.pressed = False
-            print("Kubios selected")
-            oled.kubios_dis("_", connecting=True)
-            kubios_results = connect_to_kubios(rri_list)
-            print("saving results to history")
-            if kubios_results:
-                oled.kubios_dis(kubios_results)
-                save_to_history(kubios_results)
-                print("Record saved to history")
+            if not rri_list:
+                oled.hrv_first()
             else:
-                print("Failed to connect to Kubios")  #prompt user if empty
-                connected = False
+                print("Kubios selected")
+                oled.kubios_dis("_", connecting=True)
+                kubios_results = connect_to_kubios(rri_list)
+                print("saving results to history")
+                if kubios_results:
+                    oled.kubios_dis(kubios_results)
+                    save_to_history(kubios_results)
+                    print("Record saved to history")
+                else:
+                    print("Failed to connect to Kubios")  #prompt user if empty
+                    connected = False
             encoder.empty_fifos()
 
-        elif enc_value == 0b0010:
+        elif enc_value == 0b0010: # HISTORY ##################################
             while encoder.knob_fifo.has_data():
                 encoder.knob_fifo.get()
             encoder.pressed = False
