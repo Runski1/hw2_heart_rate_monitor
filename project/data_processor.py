@@ -120,7 +120,7 @@ class DataProcessor:
                 return False
 
 
-def record_heart_rate(encoder):
+def record_heart_rate(encoder, oled):
     heart_rate = DataProcessor(100, 4)
     rri_arr_len = 0
     print("Measuring heart rate...")
@@ -136,7 +136,7 @@ def record_heart_rate(encoder):
             for led in leds:
                 led.toggle()
                 time.sleep(0.1)
-            print("Collecting data... ", len(heart_rate.rri_arr) * 2, "%")
+            oled.show_progress(len(heart_rate.rri_arr) * 2)
             rri_arr_len = len(heart_rate.rri_arr)
     print("Data collected")
     # Kill piotimer
