@@ -123,7 +123,7 @@ class DataProcessor:
 def record_heart_rate(encoder, oled):
     heart_rate = DataProcessor(100, 4)
     rri_arr_len = 0
-    print("Measuring heart rate...")
+    print("Recording")
     while len(heart_rate.rri_arr) < 50:
         while encoder.fifo.has_data():
             encoder.fifo.get()

@@ -2,6 +2,7 @@ import time, framebuf, micropython
 from machine import UART, Pin, I2C, Timer, ADC
 from ssd1306 import SSD1306_I2C
 from fifo import Fifo
+import ujson
 
 
 # Classes from other files need to be imported here if they're used
@@ -20,7 +21,7 @@ class Screen:
         self.width = 128
         self.height = 64
         self.display = SSD1306_I2C(self.width, self.height, self.i2c)
-        self.padding = 10
+        self.padding = 5
         self.gap = 10
         self.letter_size = 8
 
@@ -69,13 +70,16 @@ class Screen:
     def display_data(self, results):
         self.display.fill(0)
         y_pos = self.padding
-
-        for text, results in results:
-            self.alignment(text, results, y_pos)
+        for text, value in results.items():
+            self.alignment(text, value, y_pos)
             y_pos += self.gap  # Leaves gap between lines
             
-        self.display.text("Press to exit", 0, self.height - self.padding, 1)
+        # self.display.text("Press to exit >", 0, self.height - self.letter_size - self.padding, 1)
         self.display.show()
+        encoder.empty_fifos()
+        while encoder.knob_fifo.empty():
+            encoder.fifo.get()
+            self.display.show()  # Sorry for hacky way to keep showing the results
 
     def show_progress(self, percentage):
         self.display.fill(0)
@@ -84,42 +88,33 @@ class Screen:
         self.display.text(message, (self.width - ((len(message) * self.letter_size))) // 2, self.height - (self.gap + self.letter_size), 1)
         self.display.text(str(percentage) + "%", (self.width - ((len(str(percentage)) * self.letter_size))) // 2, self.height - self.letter_size, 1)
         self.display.show()
+
         
     def hrv_dis(self, mean_hr, mean_ppi, rmssd, sdnn):
-        results = [
-            ("MEAN HR:", mean_hr),
-            ("MEAN PPI:", mean_ppi),
-            ("RMSSD:", rmssd),
-            ("SDNN:", sdnn),
-        ]
+        results = {
+            "MEAN HR:": round(mean_hr, 1),
+            "MEAN PPI:": round(mean_ppi),
+            "RMSSD:": round(rmssd, 2),
+            "SDNN:": round(sdnn, 2),
+        }
         self.display_data(results)
         
-    def kubios_dis(self, mean_hr, mean_ppi, rmssd, sdnn, sns, pns, connected=True):
-        if (rri_list) == 0:
-            connected = False  # If no RR intervals recorded, set connected to False
-
-        self.display.fill(0)
-        self.display.text("Connecting...", 0,0 , 1)
-        time.sleep(0.1)
-        self.display.text("Connecting", 0, self.gap, 1)
-        time.sleep(0.1)
-        self.display.show()
-
-        if connected:
-            results = [
-                ("MEAN HR:", mean_hr),
-                ("MEAN PPI:", mean_ppi),
-                ("RMSSD:", rmssd),
-                ("SDNN:", sdnn),
-                ("SNS:", sns),
-                ("PNS:", pns),
-            ]
-            self.display_data(results)
-        else: # Displaying and aligning text to center
+    def kubios_dis(self, results, connecting=False):
+        if connecting: # Displaying and aligning text to center
             text1 = 'Connecting...'
             self.display.fill(0)
             self.display.text(text1, (self.width - ((len(text1) * self.letter_size))) // 2, (self.height - self.letter_size) // 2, 1)
             self.display.show()  # Connecting message
+        else:
+            self.display.fill(0)
+            y_pos = self.padding
+            parsed_results = {"MEAN HR:": results["mean_hr"],
+                              "MEAN PPI:": results["mean_ppi"],
+                              "RMSSD:": results["rmssd"],
+                              "SDNN:": results["sdnn"],
+                              "SNS:": results["sns"],
+                              "PNS:": results["pns"]}
+            self.display_data(parsed_results)
 
 class MenuButton:
     def __init__(self, pin):
@@ -212,7 +207,7 @@ while True:
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("BPM selected")
-            display_bpm(encoder)
+            display_bpm(encoder, oled)
         
         elif enc_value == 0b1000:
             while (
@@ -221,7 +216,7 @@ while True:
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("HRV selected")
-            print("Calculating basic HRV analysis")
+            oled.show_progress(0)
             rri_list = record_heart_rate(encoder, oled)
             if (
                 not rri_list
@@ -229,13 +224,13 @@ while True:
                 print("recording interrupted")
                 pass
             else:
-                results_dict = basic_hrv_analysis(rri_list)
+                results_dict = ujson.loads(basic_hrv_analysis(rri_list))
                 oled.hrv_dis(
-                    hrv_results_dict["mean_hr"],
-                    hrv_results_dict["mean_ppi"],
-                    hrv_results_dict["rmssd"],
-                    hrv_results_dict["sdnn"])
-                print(results_dict)
+                    results_dict["mean_hr"],
+                    results_dict["mean_ppi"],
+                    results_dict["rmssd"],
+                    results_dict["sdnn"])
+                encoder.empty_fifos()
                 pass
 
         elif enc_value == 0b0100:
@@ -243,25 +238,17 @@ while True:
                 encoder.knob_fifo.get()
             encoder.pressed = False
             print("Kubios selected")
-            oled.kubios_dis(None, None, None, None, None, None, connected=False)
+            oled.kubios_dis("_", connecting=True)
             kubios_results = connect_to_kubios(rri_list)
             print("saving results to history")
             if kubios_results:
-                # Call kubios_dis with the Kubios analysis results
-                oled.kubios_dis(
-                    kubios_results["mean_hr"],
-                    kubios_results["mean_ppi"],
-                    kubios_results["rmssd"],
-                    kubios_results["sdnn"],
-                    kubios_results["sns"],
-                    kubios_results["pns"],
-                    connected = True
-                )
+                oled.kubios_dis(kubios_results)
                 save_to_history(kubios_results)
                 print("Record saved to history")
             else:
                 print("Failed to connect to Kubios")  #prompt user if empty
                 connected = False
+            encoder.empty_fifos()
 
         elif enc_value == 0b0010:
             while encoder.knob_fifo.has_data():
