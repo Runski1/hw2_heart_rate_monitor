@@ -28,7 +28,7 @@ class Kubios:
         else:
             self.connected = False
 
-    def request(self, intervals):
+    def request(self, intervals, apikey):
         APIKEY = "pbZRUi49X48I56oL1Lq8y8NDjq6rPfzX3AQeNo3a"
         CLIENT_ID = "3pjgjdmamlj759te85icf0lucv"
         CLIENT_SECRET = "111fqsli1eo7mejcrlffbklvftcnfl4keoadrdv1o45vt9pndlef"
@@ -79,11 +79,13 @@ def connect_to_kubios(rri_list):
     ssid = wlan_creds.readline().strip()
     pwd = wlan_creds.readline().strip()
     wlan_creds.close()
+    with open("./api-key.txt", "r") as file:
+        apikey = file.readline().strip()
     print("WLAN credentials read")
     kubios = Kubios(ssid, pwd)  # Initialize Kubios connection
     if kubios.connected:  # Check if the wifi is connected
         results = kubios.request(
-            rri_list
+            rri_list, apikey
         )  # send request to the kubios. Returns dictionary with needed values
         print("Kubios results:")
         print(results)
