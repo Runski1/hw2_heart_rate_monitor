@@ -29,7 +29,7 @@ class Kubios:
             self.connected = False
 
     def request(self, intervals, apikey):
-        APIKEY = "pbZRUi49X48I56oL1Lq8y8NDjq6rPfzX3AQeNo3a"
+        APIKEY = apikey
         CLIENT_ID = "3pjgjdmamlj759te85icf0lucv"
         CLIENT_SECRET = "111fqsli1eo7mejcrlffbklvftcnfl4keoadrdv1o45vt9pndlef"
         LOGIN_URL = "https://kubioscloud.auth.eu-west-1.amazoncognito.com/login"
