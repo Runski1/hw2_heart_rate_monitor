@@ -13,6 +13,12 @@ I shouldve copied the installation script to our project instead of modifying it
 Every group member is free to publish this for display (For portfolio etc purposes), and we chose not to leak our teachers API key in the internet. If you have a Kubios API key and wish to use it, save it in api-key.txt and flash it in the devices root.
 
 ## Project Group Members
-Nichakon Itthikun: nichakon.itthikun@metropolia.fi
-Andrei Vlassenko: andrei.vlassenko@metropolia.fi
-Matias Ruonala: matias.ruonala@metropolia.fi
+Nichakon Itthikun:
+nichakon.itthikun@metropolia.fi
+
+Andrei Vlassenko: 
+andrei.vlassenko@metropolia.fi
+https://github.com/andreivl23
+
+Matias Ruonala (me): 
+matias.ruonala@metropolia.fi
